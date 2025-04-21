@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { Card } from "@/components/ui/card";
@@ -9,9 +8,10 @@ import { useToast } from '@/components/ui/use-toast';
 interface VideoPlayerProps {
   url: string;
   title: string;
+  streamIcon?: string;
 }
 
-const VideoPlayer = ({ url, title }: VideoPlayerProps) => {
+const VideoPlayer = ({ url, title, streamIcon }: VideoPlayerProps) => {
   const [playing, setPlaying] = useState(true);
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
@@ -105,8 +105,19 @@ const VideoPlayer = ({ url, title }: VideoPlayerProps) => {
             playsinline
           />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-white">Select a stream to play</p>
+          <div className="flex items-center justify-center h-full bg-black/90">
+            {streamIcon ? (
+              <img 
+                src={streamIcon} 
+                alt={title} 
+                className="max-h-full max-w-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a';
+                }}
+              />
+            ) : (
+              <p className="text-white">Select a stream to play</p>
+            )}
           </div>
         )}
         

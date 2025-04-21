@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import LoginForm from '../components/LoginForm';
@@ -54,7 +53,7 @@ const Index = () => {
     if (!isLoggedIn || !credentials) return '';
     
     if (contentType === 'live' && selectedChannel) {
-      const streamUrl = `${credentials.url}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}`;
+      const streamUrl = `${credentials.url}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}.m3u8`;
       console.log("Generated live stream URL:", streamUrl);
       return streamUrl;
     } else if (contentType === 'vod' && selectedVod) {
@@ -139,6 +138,7 @@ const Index = () => {
                   <VideoPlayer
                     url={getStreamUrl()}
                     title={selectedChannel?.name || selectedVod?.name || ''}
+                    streamIcon={selectedChannel?.stream_icon || selectedVod?.stream_icon}
                   />
                   <h2 className="text-xl font-bold">
                     {selectedChannel?.name || selectedVod?.name || ''}

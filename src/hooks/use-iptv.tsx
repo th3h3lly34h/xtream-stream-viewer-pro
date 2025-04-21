@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Category, Channel, VodItem, SeriesItem, IPTVState, ContentType, Credentials, SeriesDetails } from '@/types/iptv';
 import { useToast } from '@/components/ui/use-toast';
@@ -22,21 +23,67 @@ export const useIPTV = () => {
     selectedSeries: null
   });
 
+  const fetchWithCorsHandling = useCallback(async (url: string) => {
+    try {
+      console.log(`Fetching: ${url}`);
+      
+      // First attempt with the original URL
+      let response = await fetch(url, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept'
+        }
+      });
+      
+      if (!response.ok) {
+        // If the original URL fails and it's HTTP, try with HTTPS
+        if (url.startsWith('http://')) {
+          console.log('Attempting HTTPS fallback');
+          const httpsUrl = url.replace('http://', 'https://');
+          response = await fetch(httpsUrl, {
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept'
+            }
+          });
+        } 
+        // If the original URL fails and it's HTTPS, try with HTTP
+        else if (url.startsWith('https://')) {
+          console.log('Attempting HTTP fallback');
+          const httpUrl = url.replace('https://', 'http://');
+          response = await fetch(httpUrl, {
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept'
+            }
+          });
+        }
+        
+        // If still not ok, throw error
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error(`Fetch error:`, error);
+      throw error;
+    }
+  }, []);
+
   const fetchSeriesInfo = useCallback(async (seriesId: number) => {
     if (!credentials) return null;
     const { username, password, url } = credentials;
     
     try {
       console.log(`Fetching series info for series ${seriesId}`);
-      const response = await fetch(
-        `${url}/player_api.php?username=${username}&password=${password}&action=get_series_info&series_id=${seriesId}`
-      );
+      const apiUrl = `${url}/player_api.php?username=${username}&password=${password}&action=get_series_info&series_id=${seriesId}`;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      
-      const seriesInfo: SeriesDetails = await response.json();
+      const seriesInfo: SeriesDetails = await fetchWithCorsHandling(apiUrl);
       console.log(`Received series info:`, seriesInfo);
       
       setState(prev => ({
@@ -54,7 +101,7 @@ export const useIPTV = () => {
       });
       return null;
     }
-  }, [credentials, toast]);
+  }, [credentials, toast, fetchWithCorsHandling]);
 
   const fetchCategories = useCallback(async (type: ContentType) => {
     if (!credentials) return;
@@ -62,17 +109,10 @@ export const useIPTV = () => {
     
     try {
       const action = `get_${type}_categories`;
-      console.log(`Fetching ${type} categories from: ${url}/player_api.php?username=${username}&password=${password}&action=${action}`);
+      console.log(`Fetching ${type} categories`);
+      const apiUrl = `${url}/player_api.php?username=${username}&password=${password}&action=${action}`;
       
-      const response = await fetch(
-        `${url}/player_api.php?username=${username}&password=${password}&action=${action}`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      
-      const categories = await response.json();
+      const categories = await fetchWithCorsHandling(apiUrl);
       console.log(`Received ${type} categories:`, categories);
       
       setState(prev => ({
@@ -93,7 +133,7 @@ export const useIPTV = () => {
       });
       return [];
     }
-  }, [credentials, toast]);
+  }, [credentials, toast, fetchWithCorsHandling]);
 
   const fetchStreamsByCategory = useCallback(async (type: ContentType, categoryId: string) => {
     if (!credentials) return;
@@ -104,17 +144,10 @@ export const useIPTV = () => {
                      type === 'vod' ? 'get_vod_streams' : 
                      'get_live_streams';
       
-      console.log(`Fetching ${type} streams for category ${categoryId} from: ${url}/player_api.php?username=${username}&password=${password}&action=${action}&category_id=${categoryId}`);
+      console.log(`Fetching ${type} streams for category ${categoryId}`);
+      const apiUrl = `${url}/player_api.php?username=${username}&password=${password}&action=${action}&category_id=${categoryId}`;
       
-      const response = await fetch(
-        `${url}/player_api.php?username=${username}&password=${password}&action=${action}&category_id=${categoryId}`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      
-      const streams = await response.json();
+      const streams = await fetchWithCorsHandling(apiUrl);
       console.log(`Received ${type} streams for category ${categoryId}:`, streams);
       
       setState(prev => ({
@@ -136,7 +169,7 @@ export const useIPTV = () => {
       });
       return [];
     }
-  }, [credentials, toast]);
+  }, [credentials, toast, fetchWithCorsHandling]);
 
   // Add useEffect to fetch categories whenever credentials change
   useEffect(() => {

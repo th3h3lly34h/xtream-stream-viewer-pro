@@ -22,6 +22,7 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
   const [ready, setReady] = useState(false);
   const { toast } = useToast();
   const attemptedProtocols = useRef<Set<string>>(new Set());
+  const playerRef = useRef<ReactPlayer | null>(null);
 
   // Update URL when initialUrl changes
   useEffect(() => {
@@ -32,6 +33,18 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
     setError(null);
     setReady(false);
   }, [initialUrl]);
+
+  // Add event listener for fullscreenchange
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   const handlePlayPause = () => {
     setPlaying(!playing);
@@ -49,16 +62,17 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
 
   const handleFullscreenToggle = () => {
     try {
+      const playerContainer = playerRef.current?.wrapper;
+      if (!playerContainer) return;
+
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
+        playerContainer.requestFullscreen().catch(err => {
           console.error('Error attempting to enable fullscreen:', err);
         });
-        setIsFullscreen(true);
       } else {
         document.exitFullscreen().catch(err => {
           console.error('Error attempting to exit fullscreen:', err);
         });
-        setIsFullscreen(false);
       }
     } catch (err) {
       console.error('Fullscreen API error:', err);
@@ -94,9 +108,15 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
   const handlePlayerError = (e: any) => {
     console.error('Player error:', e);
     
-    // Check if this error is potentially due to mixed content
-    if (e?.message?.includes('mixed') || e?.message?.includes('blocked')) {
-      console.warn('Potential mixed content error detected');
+    // Check if this error is potentially due to mixed content or CORS
+    const errorMsg = e?.message || '';
+    if (errorMsg.includes('mixed') || errorMsg.includes('blocked') || errorMsg.includes('CORS')) {
+      console.warn('Potential mixed content or CORS error detected');
+      toast({
+        variant: "warning",
+        title: "Connection Issue",
+        description: "Attempting to fix stream connection..."
+      });
     }
     
     // Try with alternate protocol
@@ -111,7 +131,7 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
     toast({
       variant: "destructive",
       title: "Playback Error",
-      description: "There was a problem loading the stream."
+      description: "There was a problem loading the stream. This may be due to CORS restrictions."
     });
   };
 
@@ -121,6 +141,10 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
     // In case we succeeded after a protocol switch, let the user know
     if (attemptedProtocols.current.size > 1) {
       console.log('Stream loaded successfully after protocol switch');
+      toast({
+        title: "Stream Connected",
+        description: "Stream is now playing"
+      });
     }
   };
 
@@ -129,6 +153,7 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
       <div className="aspect-video relative">
         {url ? (
           <ReactPlayer
+            ref={playerRef}
             url={url}
             playing={playing}
             volume={volume}
@@ -165,6 +190,10 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
                   xhrSetup: function(xhr: XMLHttpRequest) {
                     // This allows cross-origin requests
                     xhr.withCredentials = false;
+                    
+                    // Add headers to avoid CORS issues
+                    xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
+                    xhr.setRequestHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
                   }
                 },
               },
@@ -181,6 +210,7 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
                 onError={(e) => {
                   e.currentTarget.src = 'https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a';
                 }}
+                crossOrigin="anonymous"
               />
             ) : (
               <p className="text-white">Select a stream to play</p>

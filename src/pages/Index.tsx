@@ -67,14 +67,17 @@ const Index = () => {
       streamBaseUrl = baseUrl.replace('https:', 'http:');
     }
 
+    // Add timestamp to URL to potentially bypass cache issues
+    const timestamp = Date.now();
+
     if (contentType === 'live' && selectedChannel) {
-      return `${streamBaseUrl}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}.m3u8`;
+      return `${streamBaseUrl}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}.m3u8?_=${timestamp}`;
     } else if (contentType === 'vod' && selectedVod) {
       let extension = selectedVod.container_extension || 'mp4';
       if (extension.startsWith('.')) {
         extension = extension.substring(1);
       }
-      return `${streamBaseUrl}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${extension}`;
+      return `${streamBaseUrl}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${extension}?_=${timestamp}`;
     }
     return '';
   }, [isLoggedIn, credentials, contentType, selectedChannel, selectedVod]);

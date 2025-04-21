@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import LoginForm from '../components/LoginForm';
 import VideoPlayer from '../components/VideoPlayer';
@@ -39,16 +40,30 @@ const Index = () => {
     await fetchSeriesInfo(series.series_id);
   };
 
-  const getStreamUrl = () => {
+  const handleChannelSelect = useCallback((channel: Channel) => {
+    console.log("Selected channel:", channel);
+    setSelectedChannel(channel);
+  }, []);
+
+  const handleVodSelect = useCallback((vod: VodItem) => {
+    console.log("Selected VOD:", vod);
+    setSelectedVod(vod);
+  }, []);
+
+  const getStreamUrl = useCallback(() => {
     if (!isLoggedIn || !credentials) return '';
     
     if (contentType === 'live' && selectedChannel) {
-      return `${credentials.url}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}`;
+      const streamUrl = `${credentials.url}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}`;
+      console.log("Generated live stream URL:", streamUrl);
+      return streamUrl;
     } else if (contentType === 'vod' && selectedVod) {
-      return `${credentials.url}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${selectedVod.container_extension}`;
+      const streamUrl = `${credentials.url}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${selectedVod.container_extension}`;
+      console.log("Generated VOD stream URL:", streamUrl);
+      return streamUrl;
     }
     return '';
-  };
+  }, [isLoggedIn, credentials, contentType, selectedChannel, selectedVod]);
 
   const renderContent = () => {
     if (contentType === 'live') {
@@ -59,7 +74,7 @@ const Index = () => {
               key={channel.stream_id}
               variant="outline"
               className="w-full justify-start text-left"
-              onClick={() => setSelectedChannel(channel)}
+              onClick={() => handleChannelSelect(channel)}
             >
               {channel.name}
             </Button>
@@ -73,7 +88,7 @@ const Index = () => {
         items={streams[contentType]}
         onSelect={(item) => {
           if (contentType === 'vod') {
-            setSelectedVod(item as VodItem);
+            handleVodSelect(item as VodItem);
           } else if (contentType === 'series') {
             handleSeriesSelect(item as SeriesItem);
           }
@@ -100,16 +115,23 @@ const Index = () => {
           streams={streams[contentType]}
           onCategorySelect={(categoryId) => fetchStreamsByCategory(contentType, categoryId)}
           selectedCategoryId={selectedCategoryId}
-          onChannelSelect={setSelectedChannel}
-          onVodSelect={setSelectedVod}
+          onChannelSelect={handleChannelSelect}
+          onVodSelect={handleVodSelect}
           onSeriesSelect={handleSeriesSelect}
           selectedChannelId={selectedChannel?.stream_id}
           selectedVodId={selectedVod?.stream_id}
           isMobile={isMobile}
         />
         <div className="space-y-4">
-          <ContentTabs activeType={contentType} onTypeChange={setContentType} />
+          <ContentTabs activeType={contentType} onTypeChange={(type) => {
+            setContentType(type);
+            // Reset selections when changing content type
+            if (type !== 'live') setSelectedChannel(null);
+            if (type !== 'vod') setSelectedVod(null);
+          }} />
+          
           {selectedCategoryId && renderContent()}
+          
           {(selectedChannel || selectedVod || selectedSeries) && (
             <>
               {(contentType !== 'series' || !selectedSeries) ? (

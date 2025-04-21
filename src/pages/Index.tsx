@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import LoginForm from '../components/LoginForm';
@@ -52,14 +53,28 @@ const Index = () => {
   const getStreamUrl = useCallback(() => {
     if (!isLoggedIn || !credentials) return '';
     
+    // Use the same protocol (http/https) as the current page to avoid mixed content issues
+    const currentProtocol = window.location.protocol;
+    const baseUrl = credentials.url;
+    
+    // Ensure we use the right protocol
+    let streamBaseUrl = baseUrl;
+    if (baseUrl.startsWith('http:') && currentProtocol === 'https:') {
+      console.log('Adjusting URL from HTTP to HTTPS to match page protocol');
+      streamBaseUrl = baseUrl.replace('http:', 'https:');
+    } else if (baseUrl.startsWith('https:') && currentProtocol === 'http:') {
+      console.log('Adjusting URL from HTTPS to HTTP to match page protocol');
+      streamBaseUrl = baseUrl.replace('https:', 'http:');
+    }
+
     if (contentType === 'live' && selectedChannel) {
-      return `${credentials.url}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}.m3u8`;
+      return `${streamBaseUrl}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}.m3u8`;
     } else if (contentType === 'vod' && selectedVod) {
       let extension = selectedVod.container_extension || 'mp4';
       if (extension.startsWith('.')) {
         extension = extension.substring(1);
       }
-      return `${credentials.url}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${extension}`;
+      return `${streamBaseUrl}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${extension}`;
     }
     return '';
   }, [isLoggedIn, credentials, contentType, selectedChannel, selectedVod]);

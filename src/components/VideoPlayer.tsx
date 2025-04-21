@@ -21,15 +21,12 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const { toast } = useToast();
-  const attemptedProtocols = useRef<Set<string>>(new Set());
+  const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<ReactPlayer | null>(null);
 
   // Update URL when initialUrl changes
   useEffect(() => {
     setUrl(initialUrl);
-    // Reset attempted protocols when URL changes
-    attemptedProtocols.current = new Set();
-    // Reset error state when URL changes
     setError(null);
     setReady(false);
   }, [initialUrl]);
@@ -62,11 +59,10 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
 
   const handleFullscreenToggle = () => {
     try {
-      const playerContainer = playerRef.current?.wrapper;
-      if (!playerContainer) return;
+      if (!playerContainerRef.current) return;
 
       if (!document.fullscreenElement) {
-        playerContainer.requestFullscreen().catch(err => {
+        playerContainerRef.current.requestFullscreen().catch(err => {
           console.error('Error attempting to enable fullscreen:', err);
         });
       } else {
@@ -79,78 +75,25 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
     }
   };
 
-  const tryAlternateUrl = (currentUrl: string): string | null => {
-    // Track which protocols we've tried to avoid infinite loops
-    attemptedProtocols.current.add(currentUrl);
-    
-    // Try HTTPS if current is HTTP
-    if (currentUrl.startsWith('http://')) {
-      const httpsUrl = currentUrl.replace('http://', 'https://');
-      if (!attemptedProtocols.current.has(httpsUrl)) {
-        console.log('Attempting fallback to HTTPS:', httpsUrl);
-        return httpsUrl;
-      }
-    }
-    
-    // Try HTTP if current is HTTPS
-    if (currentUrl.startsWith('https://')) {
-      const httpUrl = currentUrl.replace('https://', 'http://');
-      if (!attemptedProtocols.current.has(httpUrl)) {
-        console.log('Attempting fallback to HTTP:', httpUrl);
-        return httpUrl;
-      }
-    }
-    
-    // If we've tried both protocols already
-    return null;
-  };
-
   const handlePlayerError = (e: any) => {
     console.error('Player error:', e);
-    
-    // Check if this error is potentially due to mixed content or CORS
-    const errorMsg = e?.message || '';
-    if (errorMsg.includes('mixed') || errorMsg.includes('blocked') || errorMsg.includes('CORS')) {
-      console.warn('Potential mixed content or CORS error detected');
-      toast({
-        variant: "warning",
-        title: "Connection Issue",
-        description: "Attempting to fix stream connection..."
-      });
-    }
-    
-    // Try with alternate protocol
-    const alternateUrl = tryAlternateUrl(url);
-    if (alternateUrl) {
-      setUrl(alternateUrl);
-      return;
-    }
-    
-    // If we've tried all possible protocols, show an error
-    setError('Failed to load stream. Please try again later.');
+    setError('Failed to load stream. This may be due to CORS restrictions or an invalid stream URL.');
     toast({
-      variant: "destructive",
       title: "Playback Error",
-      description: "There was a problem loading the stream. This may be due to CORS restrictions."
+      description: "There was a problem loading the stream. Please check your connection or try again later.",
+      variant: "destructive"
     });
   };
 
   const handlePlayerReady = () => {
     setReady(true);
     setError(null);
-    // In case we succeeded after a protocol switch, let the user know
-    if (attemptedProtocols.current.size > 1) {
-      console.log('Stream loaded successfully after protocol switch');
-      toast({
-        title: "Stream Connected",
-        description: "Stream is now playing"
-      });
-    }
+    console.log('Stream loaded successfully');
   };
 
   return (
     <Card className="w-full bg-black relative group">
-      <div className="aspect-video relative">
+      <div ref={playerContainerRef} className="aspect-video relative">
         {url ? (
           <ReactPlayer
             ref={playerRef}
@@ -188,12 +131,7 @@ const VideoPlayer = ({ url: initialUrl, title, streamIcon }: VideoPlayerProps) =
                   progressive: true,
                   forceHLS: true,
                   xhrSetup: function(xhr: XMLHttpRequest) {
-                    // This allows cross-origin requests
                     xhr.withCredentials = false;
-                    
-                    // Add headers to avoid CORS issues
-                    xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
-                    xhr.setRequestHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
                   }
                 },
               },

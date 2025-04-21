@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Category, Channel, VodItem, SeriesItem, IPTVState, ContentType, Credentials, SeriesDetails } from '@/types/iptv';
 import { useToast } from '@/components/ui/use-toast';
@@ -27,8 +26,15 @@ export const useIPTV = () => {
     try {
       console.log(`Fetching: ${url}`);
       
-      // First attempt with the original URL
-      let response = await fetch(url, {
+      // Ensure URL is using HTTP protocol
+      let fetchUrl = url;
+      if (fetchUrl.startsWith('https://')) {
+        fetchUrl = fetchUrl.replace('https://', 'http://');
+        console.log('Converted HTTPS to HTTP:', fetchUrl);
+      }
+      
+      // Attempt with HTTP URL
+      const response = await fetch(fetchUrl, {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -37,35 +43,7 @@ export const useIPTV = () => {
       });
       
       if (!response.ok) {
-        // If the original URL fails and it's HTTP, try with HTTPS
-        if (url.startsWith('http://')) {
-          console.log('Attempting HTTPS fallback');
-          const httpsUrl = url.replace('http://', 'https://');
-          response = await fetch(httpsUrl, {
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-              'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept'
-            }
-          });
-        } 
-        // If the original URL fails and it's HTTPS, try with HTTP
-        else if (url.startsWith('https://')) {
-          console.log('Attempting HTTP fallback');
-          const httpUrl = url.replace('https://', 'http://');
-          response = await fetch(httpUrl, {
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-              'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept'
-            }
-          });
-        }
-        
-        // If still not ok, throw error
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
       return await response.json();
@@ -189,7 +167,13 @@ export const useIPTV = () => {
     setIsLoading(true);
     try {
       console.log("Attempting login with:", { username, url });
-      const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+      
+      // Ensure URL is using HTTP protocol
+      let baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+      if (baseUrl.startsWith('https://')) {
+        baseUrl = baseUrl.replace('https://', 'http://');
+        console.log('Converted HTTPS to HTTP:', baseUrl);
+      }
       
       // Update credentials first
       setCredentials({ username, password, url: baseUrl });

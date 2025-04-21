@@ -113,7 +113,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="grid grid-cols-[300px_1fr] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-4">
         <Sidebar
           contentType={contentType}
           categories={categories[contentType]}

@@ -10,7 +10,7 @@ interface VideoPlayerProps {
 
 const VideoPlayer = ({ url, title }: VideoPlayerProps) => {
   return (
-    <Card className="w-full aspect-video bg-black">
+    <Card className="w-full aspect-video bg-black relative group">
       <ReactPlayer
         url={url}
         playing
@@ -20,8 +20,13 @@ const VideoPlayer = ({ url, title }: VideoPlayerProps) => {
         config={{
           file: {
             forceHLS: true,
-          }
+            attributes: {
+              crossOrigin: "anonymous",
+              controlsList: "nodownload",
+            },
+          },
         }}
+        playsinline
       />
     </Card>
   );

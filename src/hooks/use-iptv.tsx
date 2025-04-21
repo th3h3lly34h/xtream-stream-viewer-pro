@@ -1,6 +1,5 @@
-
 import { useState, useCallback, useEffect } from 'react';
-import { Category, Channel, VodItem, SeriesItem, IPTVState, ContentType, Credentials } from '@/types/iptv';
+import { Category, Channel, VodItem, SeriesItem, IPTVState, ContentType, Credentials, SeriesDetails } from '@/types/iptv';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useIPTV = () => {
@@ -19,8 +18,43 @@ export const useIPTV = () => {
       live: [],
       vod: [],
       series: []
-    }
+    },
+    selectedSeries: null
   });
+
+  const fetchSeriesInfo = useCallback(async (seriesId: number) => {
+    if (!credentials) return null;
+    const { username, password, url } = credentials;
+    
+    try {
+      console.log(`Fetching series info for series ${seriesId}`);
+      const response = await fetch(
+        `${url}/player_api.php?username=${username}&password=${password}&action=get_series_info&series_id=${seriesId}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      const seriesInfo: SeriesDetails = await response.json();
+      console.log(`Received series info:`, seriesInfo);
+      
+      setState(prev => ({
+        ...prev,
+        selectedSeries: seriesInfo
+      }));
+      
+      return seriesInfo;
+    } catch (error) {
+      console.error(`Error fetching series info:`, error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to fetch series info`
+      });
+      return null;
+    }
+  }, [credentials, toast]);
 
   const fetchCategories = useCallback(async (type: ContentType) => {
     if (!credentials) return;
@@ -151,8 +185,10 @@ export const useIPTV = () => {
     categories: state.categories,
     streams: state.streams,
     selectedCategoryId: state.selectedCategoryId,
+    selectedSeries: state.selectedSeries,
     handleLogin,
     fetchStreamsByCategory,
+    fetchSeriesInfo,
     credentials
   };
 };

@@ -4,7 +4,7 @@ import LoginForm from '../components/LoginForm';
 import VideoPlayer from '../components/VideoPlayer';
 import Sidebar from '../components/Sidebar';
 import ContentTabs from '../components/ContentTabs';
-import { ContentType, Channel, VodItem } from '@/types/iptv';
+import { ContentType, Channel, VodItem, SeriesItem } from '@/types/iptv';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIPTV } from '@/hooks/use-iptv';
 
@@ -20,9 +20,11 @@ const Index = () => {
     categories,
     streams,
     selectedCategoryId,
+    selectedSeries,
     handleLogin,
     fetchStreamsByCategory,
-    credentials  // Add this line to get credentials
+    fetchSeriesInfo,
+    credentials
   } = useIPTV();
 
   const handleLoginSubmit = async (username: string, password: string, url: string) => {
@@ -30,6 +32,10 @@ const Index = () => {
     if (success) {
       setIsLoggedIn(true);
     }
+  };
+
+  const handleSeriesSelect = async (series: SeriesItem) => {
+    await fetchSeriesInfo(series.series_id);
   };
 
   const getStreamUrl = () => {
@@ -62,33 +68,56 @@ const Index = () => {
           selectedCategoryId={selectedCategoryId}
           onChannelSelect={setSelectedChannel}
           onVodSelect={setSelectedVod}
+          onSeriesSelect={handleSeriesSelect}
           selectedChannelId={selectedChannel?.stream_id}
           selectedVodId={selectedVod?.stream_id}
           isMobile={isMobile}
         />
         <div className="space-y-4">
           <ContentTabs activeType={contentType} onTypeChange={setContentType} />
-          {(selectedChannel || selectedVod) ? (
+          {(selectedChannel || selectedVod || selectedSeries) && (
             <>
-              <VideoPlayer
-                url={getStreamUrl()}
-                title={selectedChannel?.name || selectedVod?.name || ''}
-              />
-              <h2 className="text-xl font-bold">
-                {selectedChannel?.name || selectedVod?.name || ''}
-              </h2>
-              {selectedVod?.plot && (
-                <p className="text-muted-foreground">{selectedVod.plot}</p>
+              {(contentType !== 'series' || !selectedSeries) ? (
+                <>
+                  <VideoPlayer
+                    url={getStreamUrl()}
+                    title={selectedChannel?.name || selectedVod?.name || ''}
+                  />
+                  <h2 className="text-xl font-bold">
+                    {selectedChannel?.name || selectedVod?.name || ''}
+                  </h2>
+                  {selectedVod?.plot && (
+                    <p className="text-muted-foreground">{selectedVod.plot}</p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold">{selectedSeries.info.name}</h2>
+                  {selectedSeries.info.plot && (
+                    <p className="text-muted-foreground">{selectedSeries.info.plot}</p>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {selectedSeries.seasons.map((season) => (
+                      <div key={season} className="space-y-2">
+                        <h3 className="font-semibold">Season {season}</h3>
+                        {selectedSeries.episodes[season]?.map((episode) => (
+                          <Button
+                            key={episode.id}
+                            variant="outline"
+                            className="w-full text-left"
+                            onClick={() => {
+                              // Handle episode selection
+                            }}
+                          >
+                            {episode.episode_num}. {episode.title}
+                          </Button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </>
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <p className="text-muted-foreground">
-                {contentType === 'live' ? 'Select a channel to start watching' :
-                 contentType === 'vod' ? 'Select a movie to start watching' :
-                 'Select a series to start watching'}
-              </p>
-            </div>
           )}
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 export interface Channel {
   stream_id: number;
   name: string;
@@ -33,4 +32,28 @@ export interface Episode {
   container_extension: string;
 }
 
+export interface Category {
+  category_id: string;
+  category_name: string;
+  parent_id: number;
+}
+
+export interface LiveCategory extends Category {}
+export interface VodCategory extends Category {}
+export interface SeriesCategory extends Category {}
+
 export type ContentType = 'live' | 'vod' | 'series';
+
+export interface IPTVState {
+  categories: {
+    live: LiveCategory[];
+    vod: VodCategory[];
+    series: SeriesCategory[];
+  };
+  selectedCategoryId: string | null;
+  streams: {
+    live: Channel[];
+    vod: VodItem[];
+    series: SeriesItem[];
+  };
+}

@@ -1,67 +1,43 @@
+
 import React, { useState } from 'react';
 import LoginForm from '../components/LoginForm';
 import VideoPlayer from '../components/VideoPlayer';
 import Sidebar from '../components/Sidebar';
 import ContentTabs from '../components/ContentTabs';
-import { useToast } from '@/components/ui/use-toast';
-import { Channel, ContentType, VodItem, SeriesItem } from '@/types/iptv';
+import { ContentType, Channel, VodItem } from '@/types/iptv';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useIPTV } from '@/hooks/use-iptv';
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [contentType, setContentType] = useState<ContentType>('live');
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [vods, setVods] = useState<VodItem[]>([]);
-  const [series, setSeries] = useState<SeriesItem[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [selectedVod, setSelectedVod] = useState<VodItem | null>(null);
-  const [selectedSeries, setSelectedSeries] = useState<SeriesItem | null>(null);
-  const [credentials, setCredentials] = useState<{ username: string; password: string; url: string } | null>(null);
-  const { toast } = useToast();
   const isMobile = useIsMobile();
+  
+  const {
+    isLoading,
+    categories,
+    streams,
+    selectedCategoryId,
+    handleLogin,
+    fetchStreamsByCategory
+  } = useIPTV();
 
-  const handleLogin = async (username: string, password: string, url: string) => {
-    setIsLoading(true);
-    try {
-      const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-      const apis = ['get_live_streams', 'get_vod_streams', 'get_series'];
-      const results = await Promise.all(
-        apis.map(action =>
-          fetch(`${baseUrl}/player_api.php?username=${username}&password=${password}&action=${action}`)
-            .then(res => res.json())
-        )
-      );
-
-      setChannels(results[0]);
-      setVods(results[1]);
-      setSeries(results[2]);
-      setCredentials({ username, password, url: baseUrl });
+  const handleLoginSubmit = async (username: string, password: string, url: string) => {
+    const success = await handleLogin(username, password, url);
+    if (success) {
       setIsLoggedIn(true);
-      
-      toast({
-        title: "Connected successfully",
-        description: `Found ${results[0].length} channels, ${results[1].length} movies, and ${results[2].length} series`,
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Connection failed",
-        description: "Please check your credentials and try again",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const getStreamUrl = () => {
-    if (!credentials) return '';
-    const { url, username, password } = credentials;
+    if (!isLoggedIn) return '';
     
     if (contentType === 'live' && selectedChannel) {
-      return `${url}/live/${username}/${password}/${selectedChannel.stream_id}`;
+      return `${credentials?.url}/live/${credentials?.username}/${credentials?.password}/${selectedChannel.stream_id}`;
     } else if (contentType === 'vod' && selectedVod) {
-      return `${url}/movie/${username}/${password}/${selectedVod.stream_id}.${selectedVod.container_extension}`;
+      return `${credentials?.url}/movie/${credentials?.username}/${credentials?.password}/${selectedVod.stream_id}.${selectedVod.container_extension}`;
     }
     return '';
   };
@@ -69,7 +45,7 @@ const Index = () => {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <LoginForm onLogin={handleLogin} isLoading={isLoading} />
+        <LoginForm onLogin={handleLoginSubmit} isLoading={isLoading} />
       </div>
     );
   }
@@ -78,9 +54,15 @@ const Index = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="grid grid-cols-[300px_1fr] gap-4">
         <Sidebar
-          channels={channels}
+          contentType={contentType}
+          categories={categories[contentType]}
+          streams={streams[contentType]}
+          onCategorySelect={(categoryId) => fetchStreamsByCategory(contentType, categoryId)}
+          selectedCategoryId={selectedCategoryId}
           onChannelSelect={setSelectedChannel}
+          onVodSelect={setSelectedVod}
           selectedChannelId={selectedChannel?.stream_id}
+          selectedVodId={selectedVod?.stream_id}
           isMobile={isMobile}
         />
         <div className="space-y-4">

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import LoginForm from '../components/LoginForm';
@@ -57,7 +58,12 @@ const Index = () => {
       console.log("Generated live stream URL:", streamUrl);
       return streamUrl;
     } else if (contentType === 'vod' && selectedVod) {
-      const streamUrl = `${credentials.url}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${selectedVod.container_extension}`;
+      let extension = selectedVod.container_extension || 'mp4';
+      // Ensure extension doesn't start with a dot to avoid double dots
+      if (extension.startsWith('.')) {
+        extension = extension.substring(1);
+      }
+      const streamUrl = `${credentials.url}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${extension}`;
       console.log("Generated VOD stream URL:", streamUrl);
       return streamUrl;
     }

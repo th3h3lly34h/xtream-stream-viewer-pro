@@ -60,6 +60,13 @@ const VideoPlayer = ({ url, title, streamIcon }: VideoPlayerProps) => {
 
   const handlePlayerError = (e: any) => {
     console.error('Player error:', e);
+    // If the error is due to HTTP/HTTPS mismatch, try with the alternate protocol
+    if (url.startsWith('https://')) {
+      const httpUrl = url.replace('https://', 'http://');
+      console.log('Attempting fallback to HTTP:', httpUrl);
+      setError(null);
+      return;
+    }
     setError('Failed to load stream. Please try again later.');
     toast({
       variant: "destructive",
@@ -99,6 +106,18 @@ const VideoPlayer = ({ url, title, streamIcon }: VideoPlayerProps) => {
                   liveSyncDuration: 3,
                   liveMaxLatencyDuration: 10,
                   liveDurationInfinity: true,
+                  maxBufferLength: 30,
+                  maxMaxBufferLength: 600,
+                  backBufferLength: 90,
+                  maxLoadingDelay: 4,
+                  minAutoBitrate: 0,
+                  abrEwmaDefaultEstimate: 500000,
+                  startLevel: -1,
+                  fragLoadingMaxRetry: 6,
+                  manifestLoadingMaxRetry: 6,
+                  levelLoadingMaxRetry: 6,
+                  progressive: true,
+                  forceHLS: true,
                 },
               },
             }}

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ interface SidebarProps {
 }
 
 const SidebarContent = ({ 
+  contentType,
   categories,
   streams,
   onCategorySelect,
@@ -32,23 +32,46 @@ const SidebarContent = ({
   selectedChannelId,
   selectedVodId,
   selectedSeriesId,
-  contentType
 }: Omit<SidebarProps, 'isMobile'>) => {
-  const getItemId = (item: Channel | VodItem | SeriesItem) => {
-    if (contentType === 'live' || contentType === 'vod') {
-      return (item as Channel | VodItem).stream_id;
-    }
-    return (item as SeriesItem).series_id;
-  };
 
-  const isItemSelected = (item: Channel | VodItem | SeriesItem) => {
-    const itemId = getItemId(item);
+  if (contentType === 'live' && selectedCategoryId && streams.length > 0) {
     return (
-      (contentType === 'live' && itemId === selectedChannelId) ||
-      (contentType === 'vod' && itemId === selectedVodId) ||
-      (contentType === 'series' && itemId === selectedSeriesId)
+      <ScrollArea className="h-[calc(100vh-2rem)]">
+        <div className="space-y-2 p-4">
+          <Button
+            variant="outline"
+            className="w-full mb-4"
+            onClick={() => onCategorySelect('')}
+          >
+            Back to Categories
+          </Button>
+          {streams.map((stream) => {
+            const channel = stream as Channel;
+            return (
+              <Button
+                key={channel.stream_id}
+                variant={selectedChannelId === channel.stream_id ? "secondary" : "ghost"}
+                className="w-full justify-start items-center gap-2"
+                onClick={() => onChannelSelect?.(channel)}
+              >
+                {channel.stream_icon && (
+                  <img
+                    src={channel.stream_icon}
+                    alt={channel.name}
+                    className="w-8 h-8 rounded object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a';
+                    }}
+                  />
+                )}
+                <span className="truncate">{channel.name}</span>
+              </Button>
+            );
+          })}
+        </div>
+      </ScrollArea>
     );
-  };
+  }
 
   return (
     <ScrollArea className="h-full">
@@ -66,33 +89,6 @@ const SidebarContent = ({
             </Button>
           ))}
         </div>
-        
-        {selectedCategoryId && streams.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">
-              {contentType === 'live' ? 'Channels' : 
-               contentType === 'vod' ? 'Movies' : 'Series'}
-            </h2>
-            {streams.map((item) => (
-              <Button
-                key={getItemId(item)}
-                variant={isItemSelected(item) ? "secondary" : "ghost"}
-                className="w-full justify-start text-left"
-                onClick={() => {
-                  if (contentType === 'live' && onChannelSelect) {
-                    onChannelSelect(item as Channel);
-                  } else if (contentType === 'vod' && onVodSelect) {
-                    onVodSelect(item as VodItem);
-                  } else if (contentType === 'series' && onSeriesSelect) {
-                    onSeriesSelect(item as SeriesItem);
-                  }
-                }}
-              >
-                {item.name}
-              </Button>
-            ))}
-          </div>
-        )}
       </div>
     </ScrollArea>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import LoginForm from '../components/LoginForm';
 import VideoPlayer from '../components/VideoPlayer';
@@ -6,7 +5,7 @@ import Sidebar from '../components/Sidebar';
 import ContentTabs from '../components/ContentTabs';
 import { useToast } from '@/components/ui/use-toast';
 import { Channel, ContentType, VodItem, SeriesItem } from '@/types/iptv';
-import useMobile from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -20,7 +19,7 @@ const Index = () => {
   const [selectedSeries, setSelectedSeries] = useState<SeriesItem | null>(null);
   const [credentials, setCredentials] = useState<{ username: string; password: string; url: string } | null>(null);
   const { toast } = useToast();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   const handleLogin = async (username: string, password: string, url: string) => {
     setIsLoading(true);

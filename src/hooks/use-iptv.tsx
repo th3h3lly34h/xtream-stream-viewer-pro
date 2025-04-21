@@ -1,13 +1,6 @@
-
 import { useState, useCallback } from 'react';
-import { Category, Channel, VodItem, SeriesItem, IPTVState, ContentType } from '@/types/iptv';
+import { Category, Channel, VodItem, SeriesItem, IPTVState, ContentType, Credentials } from '@/types/iptv';
 import { useToast } from '@/components/ui/use-toast';
-
-interface Credentials {
-  username: string;
-  password: string;
-  url: string;
-}
 
 export const useIPTV = () => {
   const [credentials, setCredentials] = useState<Credentials | null>(null);
@@ -123,6 +116,7 @@ export const useIPTV = () => {
     streams: state.streams,
     selectedCategoryId: state.selectedCategoryId,
     handleLogin,
-    fetchStreamsByCategory
+    fetchStreamsByCategory,
+    credentials  // Add credentials to the return object
   };
 };

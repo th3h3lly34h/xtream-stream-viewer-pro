@@ -9,7 +9,7 @@ import { Category, Channel, VodItem, SeriesItem, ContentType } from '@/types/ipt
 interface SidebarProps {
   contentType: ContentType;
   categories: Category[];
-  streams: (Channel | VodItem | SeriesItem)[];
+  streams: Channel[] | VodItem[] | SeriesItem[];
   onCategorySelect: (categoryId: string) => void;
   selectedCategoryId?: string | null;
   onChannelSelect?: (channel: Channel) => void;
@@ -34,6 +34,22 @@ const SidebarContent = ({
   selectedSeriesId,
   contentType
 }: Omit<SidebarProps, 'isMobile'>) => {
+  const getItemId = (item: Channel | VodItem | SeriesItem) => {
+    if (contentType === 'live' || contentType === 'vod') {
+      return (item as Channel | VodItem).stream_id;
+    }
+    return (item as SeriesItem).series_id;
+  };
+
+  const isItemSelected = (item: Channel | VodItem | SeriesItem) => {
+    const itemId = getItemId(item);
+    return (
+      (contentType === 'live' && itemId === selectedChannelId) ||
+      (contentType === 'vod' && itemId === selectedVodId) ||
+      (contentType === 'series' && itemId === selectedSeriesId)
+    );
+  };
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-4 p-4">
@@ -59,14 +75,8 @@ const SidebarContent = ({
             </h2>
             {streams.map((item) => (
               <Button
-                key={item.stream_id}
-                variant={
-                  (contentType === 'live' && selectedChannelId === item.stream_id) ||
-                  (contentType === 'vod' && selectedVodId === item.stream_id) ||
-                  (contentType === 'series' && selectedSeriesId === (item as SeriesItem).series_id)
-                    ? "secondary"
-                    : "ghost"
-                }
+                key={getItemId(item)}
+                variant={isItemSelected(item) ? "secondary" : "ghost"}
                 className="w-full justify-start text-left"
                 onClick={() => {
                   if (contentType === 'live' && onChannelSelect) {

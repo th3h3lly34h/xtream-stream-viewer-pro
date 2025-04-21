@@ -21,7 +21,8 @@ const Index = () => {
     streams,
     selectedCategoryId,
     handleLogin,
-    fetchStreamsByCategory
+    fetchStreamsByCategory,
+    credentials  // Add this line to get credentials
   } = useIPTV();
 
   const handleLoginSubmit = async (username: string, password: string, url: string) => {
@@ -32,12 +33,12 @@ const Index = () => {
   };
 
   const getStreamUrl = () => {
-    if (!isLoggedIn) return '';
+    if (!isLoggedIn || !credentials) return '';
     
     if (contentType === 'live' && selectedChannel) {
-      return `${credentials?.url}/live/${credentials?.username}/${credentials?.password}/${selectedChannel.stream_id}`;
+      return `${credentials.url}/live/${credentials.username}/${credentials.password}/${selectedChannel.stream_id}`;
     } else if (contentType === 'vod' && selectedVod) {
-      return `${credentials?.url}/movie/${credentials?.username}/${credentials?.password}/${selectedVod.stream_id}.${selectedVod.container_extension}`;
+      return `${credentials.url}/movie/${credentials.username}/${credentials.password}/${selectedVod.stream_id}.${selectedVod.container_extension}`;
     }
     return '';
   };

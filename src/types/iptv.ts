@@ -1,3 +1,4 @@
+
 export interface Channel {
   stream_id: number;
   name: string;
@@ -16,7 +17,7 @@ export interface VodItem {
 }
 
 export interface SeriesItem {
-  series_id: number;
+  series_id: number;  // Changed from stream_id to series_id
   name: string;
   cover: string;
   plot: string | null;
@@ -56,4 +57,10 @@ export interface IPTVState {
     vod: VodItem[];
     series: SeriesItem[];
   };
+}
+
+export interface Credentials {
+  username: string;
+  password: string;
+  url: string;
 }

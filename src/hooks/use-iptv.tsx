@@ -197,6 +197,39 @@ export const useIPTV = () => {
     }
   };
 
+  const fetchVodInfo = useCallback(async (vodId: number) => {
+    if (!credentials) return null;
+    const { username, password, url } = credentials;
+    
+    try {
+      console.log(`Fetching VOD info for VOD ${vodId}`);
+      const apiUrl = `${url}/player_api.php?username=${username}&password=${password}&action=get_vod_info&vod_id=${vodId}`;
+      
+      const vodInfo = await fetchWithCorsHandling(apiUrl);
+      console.log(`Received VOD info:`, vodInfo);
+      
+      if (!vodInfo) {
+        throw new Error('No VOD info received');
+      }
+
+      // Add video URL to the VOD info
+      const videoUrl = `${url}/movie/${username}/${password}/${vodId}.${vodInfo.container_extension || 'mp4'}`;
+      
+      return {
+        ...vodInfo,
+        video_url: videoUrl
+      };
+    } catch (error) {
+      console.error(`Error fetching VOD info:`, error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to fetch VOD information`
+      });
+      return null;
+    }
+  }, [credentials, toast, fetchWithCorsHandling]);
+
   return {
     isLoading,
     categories: state.categories,
@@ -206,6 +239,7 @@ export const useIPTV = () => {
     handleLogin,
     fetchStreamsByCategory,
     fetchSeriesInfo,
-    credentials
+    credentials,
+    fetchVodInfo,
   };
 };
